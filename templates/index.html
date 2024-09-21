@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clip</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="sidebar">
+        <h2>選單</h2>
+        <ul>
+            <li><button class="sidebar-btn" data-option="volume">Volume</button></li>
+            <li>
+                <button class="sidebar-btn" data-option="speed">Speed</button>
+                <div id="speed-options" class="option-container" style="display: none;"></div>
+            </li>
+            <li><button class="sidebar-btn" data-option="subtitle">Subtitles</button></li>
+        </ul>
+    </div>
+    <div class="main-content">
+        <div class="container">
+            <h1>Clip</h1>
+            <button id="download-button" class="top-right-button" style="display: none;">下載</button>
+
+            <form id="upload-form">
+                <input type="file" id="file-input" accept="video/*" required>
+                <button type="submit">upload</button>
+            </form>
+            <progress id="progress-bar" style="display: none;" max="100" value="0"></progress>
+            <div id="message"></div>
+            <div id="preview-container" style="display: none;">
+                <h3>preview</h3>
+                <div class="video-container">
+                    <video id="preview-video" controls loop>
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+                <div id="timeline-container">
+                    <input type="range" id="timeline" min="0" max="100" value="0" step="0.1">
+                    <span id="current-time">0:00</span> / <span id="total-time">0:00</span>
+                    <div id="subtitle-markers">
+                        <div id="start-marker" class="marker" style="left: 0%;">开始</div>
+                    </div>
+                </div>
+                <button id="set-start-time">設置開始時間</button>
+                <button id="set-end-time">設置結束時間</button>
+            </div>
+            <!-- 将现有的 loading-overlay 替换为以下内容 -->
+            <div id="loading-overlay" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p id="loading-message">正在处理，请稍候...</p>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
