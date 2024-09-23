@@ -242,3 +242,46 @@ button:hover {
     color: white;
     margin-top: 10px;
 }
+
+#subtitle-container {
+    position: relative;
+    width: 100%;
+    height: 50px;
+    margin-top: 10px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    overflow: hidden;
+}
+
+.subtitle-block {
+    position: absolute;
+    height: 100%;
+    background-color: #007bff;
+    color: white;
+    text-align: center;
+    line-height: 50px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.subtitle-block:hover {
+    background-color: #0056b3;
+}
+
+#time-markers {
+    position: absolute;
+    top: -20px;
+    left: 0;
+    right: 0;
+    height: 20px;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+.time-marker {
+    position: relative;
+    font-size: 12px;
+    color: #666;
+}

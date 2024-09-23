@@ -13,6 +13,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const startMarker = document.getElementById('start-marker');
         const setStartTimeBtn = document.getElementById('set-start-time');
         const setEndTimeBtn = document.getElementById('set-end-time');
+        const subtitleContainer = document.getElementById('subtitle-container');
+        const timeMarkersContainer = document.getElementById('time-markers');
+
 
         if (!form || !fileInput || !message || !downloadButton || !progressBar || !previewContainer || !previewVideo || !timeline || !currentTime || !totalTime || !startMarker  || !setStartTimeBtn || !setEndTimeBtn) {
             throw new Error('One or more required DOM elements are missing');
@@ -50,11 +53,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const percentage = (time / previewVideo.duration) * 100;
             marker.style.left = `${percentage}%`;
         }
-
+        function updateTimeMarkers(duration) {
+            timeMarkersContainer.innerHTML = ''; // 清空现有的时间标记
+            const interval = duration / 10; // 每10%添加一个标记
+            for (let i = 0; i <= 10; i++) {
+                const time = interval * i;
+                const marker = document.createElement('div');
+                marker.className = 'time-marker';
+                marker.style.left = `${(time / duration) * 100}%`;
+                marker.textContent = formatTime(time);
+                timeMarkersContainer.appendChild(marker);
+            }
+        }
+        function updateSubtitleBlocks(subtitles) {
+            subtitleContainer.innerHTML = ''; // 清空现有的字幕图块
+            subtitles.forEach(subtitle => {
+                const block = document.createElement('div');
+                block.className = 'subtitle-block';
+                block.style.left = `${(subtitle.startTime / previewVideo.duration) * 100}%`;
+                block.style.width = `${((subtitle.endTime - subtitle.startTime) / previewVideo.duration) * 100}%`;
+                block.textContent = subtitle.text;
+                subtitleContainer.appendChild(block);
+            });
+        }
         // 當視頻元數據加載完成時,設置時間軸最大值和總時間
         previewVideo.addEventListener('loadedmetadata', () => {
             timeline.max = previewVideo.duration;
             totalTime.textContent = formatTime(previewVideo.duration);
+            updateTimeMarkers(previewVideo.duration);
         });
 
         // 當視頻播放時間更新時,同步更新時間軸和當前時間顯示
@@ -580,7 +606,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
         }
-
+        // 更新字幕图块位置和宽度
+        function updateSubtitleBlocks(subtitles) {
+            subtitleContainer.innerHTML = ''; // 清空现有的字幕图块
+            subtitles.forEach(subtitle => {
+                const block = document.createElement('div');
+                block.className = 'subtitle-block';
+                block.style.left = `${(subtitle.startTime / previewVideo.duration) * 100}%`;
+            block.style.width = `${((subtitle.endTime - subtitle.startTime) / previewVideo.duration) * 100}%`;
+            block.textContent = subtitle.text;
+            subtitleContainer.appendChild(block);
+        });
+    }
         function submitSubtitle(subtitleText, startTime, endTime) {
             let inputFile = originalVideo;
             if (currentSubtitleFile) {
@@ -625,6 +662,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     message.style.color = 'green';
 
                     currentSubtitleFile = data.output_file;
+                     // 更新字幕图块
+                    const newSubtitle = {
+                        text: subtitleText,
+                        startTime: parseFloat(startTime),
+                        endTime: parseFloat(endTime)
+                    };
+                    updateSubtitleBlocks([newSubtitle]);
                 } else {
                     throw new Error(data.error || '添加字幕失败');
                 }
@@ -672,4 +716,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('初始化时发生错误:', error);
         alert('页面加载时发生错误，请刷新页面或联系管理员');
     }
+    
+    // 更新字幕图块位置和宽度
+
 });
