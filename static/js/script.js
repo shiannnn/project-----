@@ -10,14 +10,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const timeline = document.getElementById('timeline');
         const currentTime = document.getElementById('current-time');
         const totalTime = document.getElementById('total-time');
-        const startMarker = document.getElementById('start-marker');
         const setStartTimeBtn = document.getElementById('set-start-time');
         const setEndTimeBtn = document.getElementById('set-end-time');
         const subtitleContainer = document.getElementById('subtitle-container');
         const timeMarkersContainer = document.getElementById('time-markers');
 
 
-        if (!form || !fileInput || !message || !downloadButton || !progressBar || !previewContainer || !previewVideo || !timeline || !currentTime || !totalTime || !startMarker  || !setStartTimeBtn || !setEndTimeBtn) {
+        if (!form || !fileInput || !message || !downloadButton || !progressBar || !previewContainer || !previewVideo || !timeline || !currentTime || !totalTime  || !setStartTimeBtn || !setEndTimeBtn) {
             throw new Error('One or more required DOM elements are missing');
         }
 
@@ -31,8 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let onlyChangedVolume = null; // 只有改变音量
         let onlyChangedSpeed = null; // 只有改变速度
         let currentSubtitleFile = null; // 当前字幕文件名
-        let startTime = 0;
-        let endTime = 0;
+
 
         // 格式化时间,将秒数转换为分:秒格式
         function formatTime(timeInSeconds) {
@@ -95,51 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
         timeline.addEventListener('input', () => {
             previewVideo.currentTime = timeline.value;
         });
-
-        // 设置开始时间
-        setStartTimeBtn.addEventListener('click', () => {
-            startTime = previewVideo.currentTime;
-            updateMarkerPosition(startMarker, startTime);
-            document.getElementById('start-time').value = startTime.toFixed(2);
-        });
-
-
-
-        // 允许拖动标记
-        let isDragging = false;
-        let currentMarker = null;
-
-        function startDrag(e) {
-            isDragging = true;
-            currentMarker = e.target;
-        }
-
-        function stopDrag() {
-            isDragging = false;
-            currentMarker = null;
-        }
-
-        function drag(e) {
-            if (isDragging && currentMarker) {
-                const rect = timeline.getBoundingClientRect();
-                const percentage = (e.clientX - rect.left) / rect.width;
-                const time = percentage * previewVideo.duration;
-                
-                if (currentMarker === startMarker) {
-                    startTime = time;
-                    document.getElementById('start-time').value = startTime.toFixed(2);
-                } else if (currentMarker === endMarker) {
-                    endTime = time;
-                    document.getElementById('end-time').value = endTime.toFixed(2);
-                }
-                
-                updateMarkerPosition(currentMarker, time);
-            }
-        }
-
-        startMarker.addEventListener('mousedown', startDrag);
-        document.addEventListener('mousemove', drag);
-        document.addEventListener('mouseup', stopDrag);
 
         // 當用戶選擇文件時,重置所有相關變量
         fileInput.addEventListener('change', (e) => {
