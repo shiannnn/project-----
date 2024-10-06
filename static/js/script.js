@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let onlyChangedVolume = null; // 只有改变音量
         let onlyChangedSpeed = null; // 只有改变速度
         let currentSubtitleFile = null; // 当前字幕文件名
+        let subtitles = []; // 全局字幕数组
 
 
         // 格式化时间,将秒数转换为分:秒格式
@@ -39,18 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return `${minutes}:${seconds.toString().padStart(2, '0')}`;
         }
 
-        // 更新时间显示的函数
-        function updateTimeDisplay(time) {
-            const minutes = Math.floor(time / 60);
-            const seconds = Math.floor(time % 60);
-            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        }
-
-        // 更新标记位置的函数
-        function updateMarkerPosition(marker, time) {
-            const percentage = (time / previewVideo.duration) * 100;
-            marker.style.left = `${percentage}%`;
-        }
         function updateTimeMarkers(duration) {
             timeMarkersContainer.innerHTML = ''; // 清空现有的时间标记
             const interval = duration / 10; // 每10%添加一个标记
@@ -63,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 timeMarkersContainer.appendChild(marker);
             }
         }
-        function updateSubtitleBlocks(subtitles) {
+        function updateSubtitleBlocks() {
             subtitleContainer.innerHTML = ''; // 清空现有的字幕图块
             subtitles.forEach(subtitle => {
                 const block = document.createElement('div');
@@ -155,6 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 console.log('文件已选择:', originalVideo);
+                subtitles = []; // 清空字幕数组
             }
         });
 
@@ -173,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const file = fileInput.files[0];
             if (!file) {
-                message.textContent = '請選擇一個檔案';
+                showErrorModal('請選擇一個檔案');
                 return;
             }
 
@@ -206,18 +196,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.ok) {
                     checkProgress(result.task_id);
                 } else {
-                    message.textContent = result.error;
-                    message.style.color = 'red';
+                    showErrorModal(result.error);
                     progressBar.style.display = 'none';
-                    // 隐藏加载覆盖层
                     loadingOverlay.style.display = 'none';
                 }
             } catch (error) {
                 console.error('錯誤:', error);
-                message.textContent = '上傳檔案時發生錯誤';
-                message.style.color = 'red';
+                showErrorModal('上傳檔案時發生錯誤');
                 progressBar.style.display = 'none';
-                // 隐藏加载覆盖层
                 loadingOverlay.style.display = 'none';
             }
         });
@@ -240,8 +226,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (data.progress < 100 && data.progress >= 0) {
                         setTimeout(() => checkProgress(taskId), 1000);
                     } else if (data.progress === 100) {
-                        message.textContent = '影片處理成功';
-                        message.style.color = 'green';
                         const ChangedFileName = taskId.replace('.mp4', '') + '_highlight.mp4';
                         downloadButton.onclick = () => {
                             window.location.href = `/download/${ChangedFileName}`;
@@ -255,10 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         originalVideo = ChangedFileName;
                         
-                        const processingCompleteMessage = document.createElement('p');
-                        processingCompleteMessage.textContent = '处理完成。您可以下载处理后的视频，或选择新文件重新开始。';
-                        processingCompleteMessage.style.color = 'blue';
-                        form.parentNode.insertBefore(processingCompleteMessage, form.nextSibling);
 
                         // 隐藏加载覆盖层
                         document.getElementById('loading-overlay').style.display = 'none';
@@ -301,8 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 调整音量功能
         function adjustVolume() {
             if (!originalVideo) {
-                message.textContent = '请先上传视频，然后再调整音量。';
-                message.style.color = 'red';
+                showErrorModal('請先上傳影片，然後再調整音量。');
                 return;
             }
 
@@ -383,8 +362,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     };
                     downloadButton.style.display = 'block';
                     
-                    message.textContent = '视频音量调整成功';
-                    message.style.color = 'green';
                     
                     if(isChangedVolume==0) onlyChangedVolume = data.output_file;
                     isChangedVolume = true;
@@ -395,16 +372,14 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch(error => {
                 console.error('调整视频音量时发生错误:', error);
-                message.textContent = '调整视频音量时发生错误: ' + error.message;
-                message.style.color = 'red';
+                showErrorModal('调整视频音量时发生错误: ' + error.message);
             });
         }
 
         // 調整播放速度功能
         function adjustSpeed() {
             if (!originalVideo) {
-                message.textContent = '请先上传视频，然后再调整速度。';
-                message.style.color = 'red';
+                showErrorModal('請先上傳影片，然後再調整速度。');
                 return;
             }
 
@@ -433,8 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 選擇播放速度
         function selectSpeed(speed) {
             if (!originalVideo) {
-                message.textContent = '请先上传视频，然后再调整速度。';
-                message.style.color = 'red';
+                showErrorModal('請先上傳影片，然後再調整速度。');
                 return;
             }
 
@@ -457,8 +431,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 調整視頻播放速度並處理
         function adjustVideoSpeed(speed) {
             if (!originalVideo) {
-                message.textContent = '请先上传视频，然后再调整速度。';
-                message.style.color = 'red';
+                showErrorModal('請先上傳影片，然後再調整速度！');
                 return;
             }
 
@@ -506,8 +479,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     };
                     downloadButton.style.display = 'block';
                     
-                    message.textContent = '视频速度调整成功';
-                    message.style.color = 'green';
 
                     if(isChangedSpeed==0) onlyChangedSpeed = data.output_file;
                    isChangedSpeed = true;
@@ -519,21 +490,15 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch(error => {
                 console.error('调整视频速度时发生错误:', error);
-                message.textContent = '调整视频速度时发生错误: ' + error.message;
-                message.style.color = 'red';
+                showErrorModal('调整视频速度时发生错误: ' + error.message);
             });
         }
 
-        // 應用淡入淡出效果(待實現)
-        function applyFade() {
-            console.log('應用淡入淡出');
-        }
 
         // 添加字幕功能
         function addSubtitle() {
             if (!originalVideo) {
-                message.textContent = '请先上传视频，然后再添加字幕。';
-                message.style.color = 'red';
+                showErrorModal('請先上傳影片，然後再添加字幕。');
                 return;
             }
 
@@ -559,18 +524,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
         }
-        // 更新字幕图块位置和宽度
-        function updateSubtitleBlocks(subtitles) {
-            subtitleContainer.innerHTML = ''; // 清空现有的字幕图块
-            subtitles.forEach(subtitle => {
-                const block = document.createElement('div');
-                block.className = 'subtitle-block';
-                block.style.left = `${(subtitle.startTime / previewVideo.duration) * 100}%`;
-            block.style.width = `${((subtitle.endTime - subtitle.startTime) / previewVideo.duration) * 100}%`;
-            block.textContent = subtitle.text;
-            subtitleContainer.appendChild(block);
-        });
-    }
         function submitSubtitle(subtitleText, startTime, endTime) {
             let inputFile = originalVideo;
             if (currentSubtitleFile) {
@@ -611,25 +564,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     };
                     downloadButton.style.display = 'block';
                     
-                    message.textContent = '字幕添加成功';
-                    message.style.color = 'green';
 
                     currentSubtitleFile = data.output_file;
-                     // 更新字幕图块
+                    
+                    // 添加新字幕到数组
                     const newSubtitle = {
                         text: subtitleText,
                         startTime: parseFloat(startTime),
                         endTime: parseFloat(endTime)
                     };
-                    updateSubtitleBlocks([newSubtitle]);
+                    subtitles.push(newSubtitle);
+                    
+                    // 更新字幕图块
+                    updateSubtitleBlocks();
                 } else {
                     throw new Error(data.error || '添加字幕失败');
                 }
             })
             .catch(error => {
                 console.error('添加字幕时发生错误:', error);
-                message.textContent = '添加字幕时发生错误: ' + error.message;
-                message.style.color = 'red';
+                showErrorModal('添加字幕时发生错误: ' + error.message);
             })
             .finally(() => {
                 // 隐藏加载指示器
@@ -637,10 +591,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // 應用特效功能(待實現)
-        function applyEffects() {
-            console.log('應用特效');
-        }
 
         // 添加這行來獲取所有側邊欄按鈕
         const sidebarButtons = document.querySelectorAll('.sidebar-btn');
@@ -665,11 +615,23 @@ document.addEventListener('DOMContentLoaded', () => {
         subtitleOptionsContainer.style.display = 'none';
         sidebarList.insertBefore(subtitleOptionsContainer, sidebarList.children[2]);
 
+        // 添加這個新函數來顯示錯誤彈窗
+        function showErrorModal(errorMessage) {
+            const modal = document.createElement('div');
+            modal.className = 'error-modal';
+            modal.innerHTML = `
+                <div class="error-modal-content">
+                    <h2>錯誤</h2>
+                    <p>${errorMessage}</p>
+                    <button onclick="this.parentElement.parentElement.remove()">關閉</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
     } catch (error) {
-        console.error('初始化时发生错误:', error);
-        alert('页面加载时发生错误，请刷新页面或联系管理员');
+        showErrorModal('初始化時發生錯誤: ' + error.message);
     }
     
-    // 更新字幕图块位置和宽度
 
 });

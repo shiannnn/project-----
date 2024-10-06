@@ -35,9 +35,13 @@ def predict(path, processor, model):
     speech, sr = librosa.load(path=path, sr=sample_rate)
     speech = processor(speech, padding="max_length", truncation=True, max_length=duration * sr,
                        return_tensors="pt", sampling_rate=sr).input_values
+    
+    # 将输入数据移动到GPU
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    speech = speech.to(device)
+    
     with torch.no_grad():
         logit = model(speech)
-    score = F.softmax(logit, dim=1).detach().cpu().numpy()[0]
     id = torch.argmax(logit).cpu().numpy()
     return id2class(id)
     # print(f"file path: {path} \t predict: {id2class(id)} \t score:{score[id]} ")
@@ -78,6 +82,9 @@ model = HubertForSpeechClassification.from_pretrained(
     model_name_or_path,
     config=config,
 )
+# 将模型移动到GPU
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)
 model.eval()
 
 

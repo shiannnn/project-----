@@ -1,18 +1,22 @@
 import os
 import subprocess
 import numpy as np
-from app.emotion import predict, processor, model  # 引入情緒判斷的模塊
+from app.emotion import predict,  processor, model  # 引入情緒判斷的模塊
+from concurrent.futures import ThreadPoolExecutor
 
-def create_highlight_video(video_path, highlight_times, energy, sr, hop_length, duration=10, keep_start=5, output_path="highlight_video.mp4"):
+def create_highlight_video(video_path, highlight_times, energy, sr, hop_length, output_path="highlight_video.mp4"):
+    duration = 20
+    keep_start = 20
     clips = []
+    emotions = []  # 新增一個列表來存儲每個片段的情緒
     for time in highlight_times:
         if (time - keep_start) <= 0 :
             start = 0   
         else:     
-            start = find_low_energy_end((time - keep_start),energy, sr, hop_length, duration)  # 保留前 3 秒
+            start = find_low_energy_end((time - keep_start),energy, sr, hop_length, duration)  # 保留前 10 秒
 
         end = find_low_energy_end(time, energy, sr, hop_length, duration)
-
+    
         # 確保結束時間晚於開始時間
         if end <= start:
             end = start + 1  # 如果結束時間不正確，將其設置為開始時間後 1 秒
@@ -23,11 +27,13 @@ def create_highlight_video(video_path, highlight_times, energy, sr, hop_length, 
         extract_audio_clip(video_path, start, end, audio_clip_path)
         
         # 判斷情緒
-        # emotion = predict(audio_clip_path, processor, model)
+        emotion = predict(audio_clip_path, processor, model)
         os.remove(audio_clip_path)  # 刪除臨時音頻文件
         
-        # if emotion != "neutral":  # 如果情緒不是 neutral，則保留此片段
-        clips.append((start, end))
+        
+        if emotion in ['excitement', 'surprise', 'happiness', 'angry', 'fear', 'positive']:  
+            clips.append((start, end))
+            emotions.append(emotion)  # 將情緒添加到列表中
     
     # 合併重疊的片段
     merged_clips = merge_overlapping_clips(clips)
@@ -43,16 +49,19 @@ def create_highlight_video(video_path, highlight_times, energy, sr, hop_length, 
             
             # 將片段文件名添加到列表文件
             file.write(f"file '{output_file}'\n")
+    # 紀錄情緒
+    with open("emotion.txt", "w") as file:
+        for i, (emotion) in enumerate(emotions):
+            file.write(f"clip_{i+1}.mp4: {emotion}\n")
 
     # 合併所有片段，使用重新編碼以確保同步
     subprocess.run(f"ffmpeg -y -f concat -safe 0 -i file_list.txt -c:v libx264 -c:a aac -strict experimental {output_path}", shell=True, check=True)
 
     # 刪除臨時文件
-    for i in range(len(merged_clips)):
-        os.remove(f"clip_{i+1}.mp4")
+    # for i in range(len(merged_clips)):
+    #     os.remove(f"clip_{i+1}.mp4")
     os.remove("file_list.txt")
 
-    print(f"精華影片已成功生成：{output_path}，臨時文件已刪除。")
 
     return output_path
 
@@ -69,6 +78,12 @@ def merge_overlapping_clips(clips):
         else:
             merged[-1] = (merged[-1][0], max(merged[-1][1], clip[1]))
     return merged
+
+def process_clip(start, end, video_path, i):
+    output_file = f"clip_{i+1}.mp4"
+    command = f"ffmpeg -y -ss {start} -to {end} -i {video_path} -c:v libx264 -c:a aac -strict experimental {output_file}"
+    subprocess.run(command, shell=True, check=True)
+    return output_file
 
 def find_low_energy_end(start_time, energy, sr, hop_length, max_duration):
     start_frame = int(start_time * sr / hop_length)
