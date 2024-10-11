@@ -6,7 +6,7 @@ from app import process_video
 import threading
 from app.adjust_video import adjust_video_speed, adjust_video_volume
 from flask import session
-from app.subtitle import add_subtitle
+from app.subtitle import add_subtitle, apply_subtitles , extract_subtitles
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -234,10 +234,72 @@ def add_subtitle_route():
         app.logger.error(f"添加字幕时发生错误: {str(e)}", exc_info=True)
         return jsonify({'error': f'添加字幕时发生错误: {str(e)}'}), 500
 
+@app.route('/update_subtitles', methods=['POST'])
+def update_subtitles():
+    data = request.json
+    input_file = data.get('input_file')
+    subtitles = data.get('subtitles', [])
+
+    if not input_file:
+        app.logger.error("未提供輸入文件")
+        return jsonify({'error': 'No input file provided'}), 400
+
+    base_name, ext = os.path.splitext(input_file)
+    output_file = f"{base_name}_subtitled{ext}"
+    output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_file)
+    input_path = os.path.join(app.config['UPLOAD_FOLDER'], input_file)
+
+    app.logger.info(f"開始處理字幕: 輸入文件 {input_path}, 輸出文件 {output_path}")
+
+    try:
+        if not subtitles:
+            app.logger.info("沒有字幕需要應用，返回原始文件")
+            return jsonify({'output_file': input_file})
+        else:
+            app.logger.info(f"應用新的字幕: {subtitles}")
+            success = apply_subtitles(input_path, output_path, subtitles)
+            message = "字幕應用成功"
+
+        if success:
+            app.logger.info(message)
+            return jsonify({'message': message, 'output_file': output_file}), 200
+        else:
+            app.logger.error("處理字幕失敗")
+            return jsonify({'error': '處理字幕失敗'}), 500
+    except Exception as e:
+        app.logger.exception(f"處理字幕時發生錯誤: {str(e)}")
+        return jsonify({'error': f'處理字幕時發生錯誤: {str(e)}'}), 500
 
 
 
 
+
+@app.route('/get_subtitles', methods=['POST'])
+def get_subtitles():
+    data = request.json
+    input_file = data.get('input_file')
+
+    if not input_file:
+        return jsonify({'error': '未提供輸入文件'}), 400
+
+    input_path = os.path.join(app.config['UPLOAD_FOLDER'], input_file)
+
+    if not os.path.exists(input_path):
+        return jsonify({'error': '輸入文件不存在'}), 404
+
+    try:
+        app.logger.info(f"開始提取字幕: 輸入文件 {input_path}")
+        subtitles = extract_subtitles(input_path)
+        
+        if subtitles:
+            app.logger.info(f"成功提取 {len(subtitles)} 個字幕")
+            return jsonify({'subtitles': subtitles}), 200
+        else:
+            app.logger.warning("未找到字幕")
+            return jsonify({'subtitles': []}), 200
+    except Exception as e:
+        app.logger.error(f"提取字幕時發生錯誤: {str(e)}", exc_info=True)
+        return jsonify({'error': f'提取字幕時發生錯誤: {str(e)}'}), 500
+    
 if __name__ == '__main__':
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     app.run(debug=True)

@@ -41,7 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function updateTimeMarkers(duration) {
-            timeMarkersContainer.innerHTML = ''; // 清空现有的时间标记
+            const subtitleContainer = document.getElementById('subtitle-container');
+            subtitleContainer.innerHTML = ''; // 清空现有的时间标记和字幕块
             const interval = duration / 10; // 每10%添加一个标记
             for (let i = 0; i <= 10; i++) {
                 const time = interval * i;
@@ -49,11 +50,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 marker.className = 'time-marker';
                 marker.style.left = `${(time / duration) * 100}%`;
                 marker.textContent = formatTime(time);
-                timeMarkersContainer.appendChild(marker);
+                subtitleContainer.appendChild(marker);
             }
         }
         function updateSubtitleBlocks() {
-            subtitleContainer.innerHTML = ''; // 清空现有的字幕图块
+            const subtitleContainer = document.getElementById('subtitle-container');
+            // 不清空容器，因为时间标记已经在里面了
             subtitles.forEach(subtitle => {
                 const block = document.createElement('div');
                 block.className = 'subtitle-block';
@@ -68,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
             timeline.max = previewVideo.duration;
             totalTime.textContent = formatTime(previewVideo.duration);
             updateTimeMarkers(previewVideo.duration);
+            updateSubtitleBlocks(); // 在更新时间标记后更新字幕块
         });
 
         // 當視頻播放時間更新時,同步更新時間軸和當前時間顯示
@@ -510,39 +513,116 @@ document.addEventListener('DOMContentLoaded', () => {
             // 如果是显示状态，创建字幕输入表单
             if (subtitleOptionsContainer.style.display === 'block') {
                 subtitleOptionsContainer.innerHTML = `
-                    <input type="text" id="start-time" placeholder="开始时间 (秒)" class="time-input">
-                    <input type="text" id="end-time" placeholder="结束时间 (秒)" class="time-input">
-                    <textarea id="subtitle-text" placeholder="输入字幕内容" class="subtitle-input"></textarea>
+                    <input type="text" id="start-time" placeholder="開始時間 (秒)" class="time-input">
+                    <input type="text" id="end-time" placeholder="結束時間 (秒)" class="time-input">
+                    <textarea id="subtitle-text" placeholder="輸入字幕內容" class="subtitle-input"></textarea>
                     <button id="submit-subtitle">添加字幕</button>
+                    <div id="subtitle-list"></div>
                 `;
 
-                document.getElementById('submit-subtitle').onclick = () => {
+                // 使用函數來設置事件監聽器
+                setupSubmitSubtitleListener();
+
+                updateSubtitleList();
+            }
+
+            function setupSubmitSubtitleListener() {
+                const submitButton = document.getElementById('submit-subtitle');
+                submitButton.onclick = () => {
                     const startTime = document.getElementById('start-time').value;
                     const endTime = document.getElementById('end-time').value;
                     const subtitleText = document.getElementById('subtitle-text').value;
                     submitSubtitle(subtitleText, startTime, endTime);
                 };
             }
-        }
-        function submitSubtitle(subtitleText, startTime, endTime) {
-            let inputFile = originalVideo;
-            if (currentSubtitleFile) {
-                inputFile = currentSubtitleFile;
+
+            function submitSubtitle(text, startTime, endTime) {
+                const newSubtitle = {
+                    text: text,
+                    startTime: parseFloat(startTime),
+                    endTime: parseFloat(endTime)
+                };
+                subtitles.push(newSubtitle);
+                updateSubtitleList();
+                updateSubtitleBlocks();
+                applySubtitlesToVideo();
+                resetSubtitleForm();
+                // 重新設置事件監聽器
+                setupSubmitSubtitleListener();
             }
 
-            // 显示加载指示器
+           
+        }
+        function resetSubtitleForm() {
+                        document.getElementById('start-time').value = '';
+                        document.getElementById('end-time').value = '';
+            document.getElementById('subtitle-text').value = '';
+        }
+        function editSubtitle(index) {
+            const subtitle = subtitles[index];
+            document.getElementById('start-time').value = subtitle.startTime;
+            document.getElementById('end-time').value = subtitle.endTime;
+            document.getElementById('subtitle-text').value = subtitle.text;
+            document.getElementById('submit-subtitle').textContent = '更新字幕';
+            document.getElementById('submit-subtitle').onclick = () => {
+                const startTime = document.getElementById('start-time').value;
+                const endTime = document.getElementById('end-time').value;
+                const subtitleText = document.getElementById('subtitle-text').value;
+
+                updateSubtitle(index, subtitleText, startTime, endTime);
+            };
+        }
+
+        function updateSubtitle(index, text, startTime, endTime) {
+            subtitles[index] = {
+                text: text,
+                startTime: parseFloat(startTime),
+                endTime: parseFloat(endTime)
+            };
+            updateSubtitleList();
+            updateSubtitleBlocks();
+            applySubtitlesToVideo();
+            resetSubtitleForm();
+            // 重置提交按鈕
+            document.getElementById('submit-subtitle').textContent = '添加字幕';
+        }
+
+        function updateSubtitleList() {
+            const subtitleList = document.getElementById('subtitle-list');
+            subtitleList.innerHTML = '';
+            subtitles.forEach((subtitle, index) => {
+                const subtitleItem = document.createElement('div');
+                subtitleItem.className = 'subtitle-item';
+                subtitleItem.innerHTML = `
+                    <span>${formatTime(subtitle.startTime)} - ${formatTime(subtitle.endTime)}: ${subtitle.text}</span>
+                    <button onclick="editSubtitle(${index})">编辑</button>
+                    <button onclick="deleteSubtitle(${index})">删除</button>
+                `;
+                subtitleList.appendChild(subtitleItem);
+            });
+        }
+
+        function deleteSubtitle(index) {
+            subtitles.splice(index, 1);
+            updateSubtitleList();
+            updateSubtitleBlocks();
+            applySubtitlesToVideo();
+        }
+
+        function applySubtitlesToVideo() {
+            let inputFile = originalVideo;
+
+            // 顯示加載指示器
             document.getElementById('loading-overlay').style.display = 'flex';
 
-            fetch('/add_subtitle', {
+            fetch('/update_subtitles', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     input_file: inputFile,
-                    subtitle_text: subtitleText,
-                    start_time: startTime,
-                    end_time: endTime,
+                    subtitles: subtitles,
                 }),
             })
             .then(response => {
@@ -553,12 +633,12 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .then(data => {
                 if (data.output_file) {
-                    // 更新预览视频为新的带字幕视频
-                    previewVideo.src = `/preview/${data.output_file}`;
+                    // 更新預覽視頻為新的帶字幕視頻
+                    previewVideo.src = `/preview/${data.output_file}?t=${new Date().getTime()}`; // 添加時間戳以避免緩存
                     previewVideo.load();
                     previewVideo.play();
                     
-                    // 更新下载按钮链接
+                    // 更新下載按鈕鏈接
                     downloadButton.onclick = () => {
                         window.location.href = `/download/${data.output_file}`;
                     };
@@ -566,31 +646,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     
 
                     currentSubtitleFile = data.output_file;
-                    
-                    // 添加新字幕到数组
-                    const newSubtitle = {
-                        text: subtitleText,
-                        startTime: parseFloat(startTime),
-                        endTime: parseFloat(endTime)
-                    };
-                    subtitles.push(newSubtitle);
-                    
-                    // 更新字幕图块
-                    updateSubtitleBlocks();
                 } else {
-                    throw new Error(data.error || '添加字幕失败');
+                    throw new Error(data.error || '應用字幕失敗');
                 }
             })
             .catch(error => {
-                console.error('添加字幕时发生错误:', error);
-                showErrorModal('添加字幕时发生错误: ' + error.message);
+                console.error('應用字幕時發生錯誤:', error);
+                showErrorModal('應用字幕時發生錯誤: ' + error.message);
             })
             .finally(() => {
-                // 隐藏加载指示器
+                // 隱藏加載指示器
                 document.getElementById('loading-overlay').style.display = 'none';
             });
         }
-
 
         // 添加這行來獲取所有側邊欄按鈕
         const sidebarButtons = document.querySelectorAll('.sidebar-btn');
@@ -628,6 +696,11 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             document.body.appendChild(modal);
         }
+
+        // 確保這個函數在全局範圍內定義
+        window.editSubtitle = editSubtitle;
+        window.deleteSubtitle = deleteSubtitle;
+
 
     } catch (error) {
         showErrorModal('初始化時發生錯誤: ' + error.message);
