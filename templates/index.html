@@ -9,20 +9,20 @@
 <body>
     <div class="main-container">
         <header>
-            <h1 id="video-title">视频标题</h1>
-            <button id="download-button" style="display: none;">下载</button>
+            <h1 id="video-title">Game Video Clip</h1>
+            <button id="download-button" style="display: none;">Download</button>
         </header>
         
         <div class="content">
             <div class="sidebar">
-                <h2>选单</h2>
+                <h2>Menu</h2>
                 <ul>
-                    <li><button class="sidebar-btn" data-option="volume">音量</button></li>
+                    <li><button class="sidebar-btn" data-option="volume">Volume</button></li>
                     <li>
-                        <button class="sidebar-btn" data-option="speed">速度</button>
+                        <button class="sidebar-btn" data-option="speed">Speed</button>
                         <div id="speed-options" class="option-container" style="display: none;"></div>
                     </li>
-                    <li><button class="sidebar-btn" data-option="subtitle">字幕</button></li>
+                    <li><button class="sidebar-btn" data-option="subtitle">Subtitle</button></li>
                 </ul>
             </div>
             
@@ -40,16 +40,12 @@
                     <div id="subtitle-container"></div>
                 </div>
                 
-                <div class="timeline-controls">
-                    <button id="set-start-time">设置开始时间</button>
-                    <button id="set-end-time">设置结束时间</button>
-                </div>
             </div>
         </div>
         
         <form id="upload-form">
             <input type="file" id="file-input" accept="video/*" required>
-            <button type="submit">上传</button>
+            <button type="submit">Upload</button>
         </form>
         
         <progress id="progress-bar" style="display: none;" max="100" value="0"></progress>
@@ -58,7 +54,7 @@
     
     <div id="loading-overlay" style="display: none;">
         <div class="loading-spinner"></div>
-        <p id="loading-message">正在处理，请稍候...</p>
+        <p id="loading-message">Processing, please wait...</p>
     </div>
     
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>

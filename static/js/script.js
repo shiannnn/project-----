@@ -10,30 +10,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const timeline = document.getElementById('timeline');
         const currentTime = document.getElementById('current-time');
         const totalTime = document.getElementById('total-time');
-        const setStartTimeBtn = document.getElementById('set-start-time');
-        const setEndTimeBtn = document.getElementById('set-end-time');
         const subtitleContainer = document.getElementById('subtitle-container');
         const timeMarkersContainer = document.getElementById('time-markers');
 
 
-        if (!form || !fileInput || !message || !downloadButton || !progressBar || !previewContainer || !previewVideo || !timeline || !currentTime || !totalTime  || !setStartTimeBtn || !setEndTimeBtn) {
+        if (!form || !fileInput || !message || !downloadButton || !progressBar || !previewContainer || !previewVideo || !timeline || !currentTime || !totalTime ) {
             throw new Error('One or more required DOM elements are missing');
         }
 
-        let currentSpeed = 1; // 默认速度为 1x
-        let originalVideo = null; // 用于存储原始视频文件名
-        let previewVideoUrl = null; // 用于存储预览视频的 URL
-        let isChangedVolume = false; // 用于判断视频是否已经处理
-        let isChangedSpeed = false; // 用于判断视频是否已经处理
-        let ChangedVolumeFileName = null; // 用于存储改变后的文件名
-        let ChangedSpeedFileName = null; // 用于存储改变后的文件名
-        let onlyChangedVolume = null; // 只有改变音量
-        let onlyChangedSpeed = null; // 只有改变速度
-        let currentSubtitleFile = null; // 当前字幕文件名
-        let subtitles = []; // 全局字幕数组
+
+        let currentSpeed = 1; // 當前速度
+        let currentVolume = 1; // 當前音量
+        let originalVideo = null; // 用於存儲原始視頻文件名
+        let processedVideo = null; // 用於存儲處理後的視頻文件名
+        let previewVideoUrl = null; // 用於存儲預覽視頻的 URL
 
 
-        // 格式化时间,将秒数转换为分:秒格式
+        // 格式化時間,將秒數轉換為分:秒格式
         function formatTime(timeInSeconds) {
             const minutes = Math.floor(timeInSeconds / 60);
             const seconds = Math.floor(timeInSeconds % 60);
@@ -42,8 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function updateTimeMarkers(duration) {
             const subtitleContainer = document.getElementById('subtitle-container');
-            subtitleContainer.innerHTML = ''; // 清空现有的时间标记和字幕块
-            const interval = duration / 10; // 每10%添加一个标记
+            subtitleContainer.innerHTML = ''; // 清空現有的時間標記和字幕塊
+            const interval = duration / 10; // 每10%添加一個標記
             for (let i = 0; i <= 10; i++) {
                 const time = interval * i;
                 const marker = document.createElement('div');
@@ -55,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         function updateSubtitleBlocks() {
             const subtitleContainer = document.getElementById('subtitle-container');
-            // 不清空容器，因为时间标记已经在里面了
+            // 不清空容器，因為時間標記已經在裡面了
             subtitles.forEach(subtitle => {
                 const block = document.createElement('div');
                 block.className = 'subtitle-block';
@@ -70,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
             timeline.max = previewVideo.duration;
             totalTime.textContent = formatTime(previewVideo.duration);
             updateTimeMarkers(previewVideo.duration);
-            updateSubtitleBlocks(); // 在更新时间标记后更新字幕块
+            updateSubtitleBlocks(); // 在更新時間標記後更新字幕塊
         });
 
         // 當視頻播放時間更新時,同步更新時間軸和當前時間顯示
@@ -92,36 +85,38 @@ document.addEventListener('DOMContentLoaded', () => {
             if (file) {
                 // 重置所有相關變量
                 previewVideoUrl = URL.createObjectURL(file);
-                currentSpeed = 1;
-                isProcessed = false;
                 originalVideo = file.name;
-                
+                processedVideo = null;
+                currentSpeed = 1;
+                currentVolume = 1;
+                originalSpeed = 1;
+                originalVolume = 1;
 
                 // 重置UI
                 downloadButton.style.display = 'none';
                 message.textContent = '';
-                form.style.display = 'block'; // 显示上传表单
+                form.style.display = 'block'; // 顯示上傳表單
                 
-                // 移除"如需重新剪辑"的消息（如果存在）
+                // 移除"如需重新剪輯"的消息（如果存在）
                 const resetMessage = document.querySelector('p[style="color: blue;"]');
                 if (resetMessage) {
                     resetMessage.remove();
                 }
                 
-                // 更新预览视频
+                // 更新預覽視頻
                 updatePreviewVideo();
                 
 
-                // 重置速度选项
+                // 重置速度選項
                 const speedOptionsContainer = document.getElementById('speed-options');
                 speedOptionsContainer.style.display = 'none';
                 speedOptionsContainer.innerHTML = '';
 
-                // 重置进度条
+                // 重置進度條
                 progressBar.style.display = 'none';
                 progressBar.value = 0;
 
-                // 发送文件到后端
+                // 發送文件到後端
                 const formData = new FormData();
                 formData.append('file', file);
 
@@ -137,21 +132,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
                 .then(data => {
                     if (data.message) {
-                        console.log('文件信息已保存到后端:', data.message);
+                        console.log('文件信息已保存到後端:', data.message);
                     } else {
-                        console.error('保存文件信息失败:', data.error);
+                        console.error('保存文件信息失敗:', data.error);
                     }
                 })
                 .catch(error => {
-                    console.error('保存文件信息时发生错误:', error);
+                    console.error('保存文件信息時發生錯誤:', error);
                 });
 
-                console.log('文件已选择:', originalVideo);
-                subtitles = []; // 清空字幕数组
+                console.log('文件已選擇:', originalVideo);
+                subtitles = []; // 清空字幕數組
             }
         });
 
-        // 更新预览视频的源和播放状态
+        // 更新預覽視頻的源和播放狀態
         function updatePreviewVideo() {
             if (previewVideoUrl) {
                 previewVideo.src = previewVideoUrl;
@@ -166,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const file = fileInput.files[0];
             if (!file) {
-                showErrorModal('請選擇一個檔案');
+                showErrorModal('Please upload the video first.');
                 return;
             }
 
@@ -174,10 +169,10 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('file', file);
             formData.append('speed', currentSpeed);
 
-            // 显示加载覆盖层
+            // 顯示加載覆蓋層
             const loadingOverlay = document.getElementById('loading-overlay');
             const loadingMessage = document.getElementById('loading-message');
-            loadingMessage.textContent = '正在上傳並處理影片，請稍候...';
+            loadingMessage.textContent = 'Video is being uploaded and processed, please wait...';
             loadingOverlay.style.display = 'flex';
 
             message.textContent = '';
@@ -204,14 +199,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     loadingOverlay.style.display = 'none';
                 }
             } catch (error) {
-                console.error('錯誤:', error);
-                showErrorModal('上傳檔案時發生錯誤');
+                console.error('error:', error);
+                showErrorModal('An error occurred while uploading the file');
                 progressBar.style.display = 'none';
                 loadingOverlay.style.display = 'none';
             }
         });
 
-        // 修改 checkProgress 函数
+        // 修改 checkProgress 函數
         function checkProgress(taskId) {
             fetch(`/progress/${taskId}`)
                 .then(response => {
@@ -243,18 +238,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         originalVideo = ChangedFileName;
                         
 
-                        // 隐藏加载覆盖层
+                        // 隱藏加載覆蓋層
                         document.getElementById('loading-overlay').style.display = 'none';
                     } else {
                         throw new Error('Invalid progress value');
                     }
                 })
                 .catch(error => {
-                    console.error('檢查進度時發生錯誤:', error);
-                    message.textContent = '檢查進度時發生錯誤: ' + error.message;
+                    console.error('An error occurred while checking progress:', error);
+                    message.textContent = 'An error occurred while checking progress: ' + error.message;
                     message.style.color = 'red';
                     progressBar.style.display = 'none';
-                    // 隐藏加载覆盖层
+                    // 隱藏加載覆蓋層
                     document.getElementById('loading-overlay').style.display = 'none';
                 });
         }
@@ -281,32 +276,32 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 调整音量功能
+        // 調整音量功能
         function adjustVolume() {
             if (!originalVideo) {
-                showErrorModal('請先上傳影片，然後再調整音量。');
+                showErrorModal('Please upload the video first and then adjust the volume.');
                 return;
             }
 
             const volumeOptionsContainer = document.getElementById('volume-options');
             
-            // 切换音量选项的显示状态
+            // 切換音量選項的顯示狀態
             volumeOptionsContainer.style.display = volumeOptionsContainer.style.display === 'none' ? 'block' : 'none';
 
-            // 如果是显示状态，创建音量滑块
+            // 如果是顯示狀態，創建音量滑塊
             if (volumeOptionsContainer.style.display === 'block') {
-                volumeOptionsContainer.innerHTML = ''; // 清空现有的选项
+                volumeOptionsContainer.innerHTML = ''; // 清空現有的選項
                 
                 const volumeSlider = document.createElement('input');
                 volumeSlider.type = 'range';
                 volumeSlider.min = 0;
                 volumeSlider.max = 200;
-                volumeSlider.value = 100;
+                volumeSlider.value = currentVolume * 100;
                 volumeSlider.step = 1;
                 volumeSlider.classList.add('volume-slider');
 
                 const volumeLabel = document.createElement('span');
-                volumeLabel.textContent = '100%';
+                volumeLabel.textContent = `${currentVolume * 100}%`;
                 volumeLabel.classList.add('volume-label');
 
                 volumeSlider.oninput = () => {
@@ -322,28 +317,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 应用音量变化
+        // 修改 applyVolumeChange 函數
         function applyVolumeChange(volume) {
-            let inputFile;
-            if (isChangedVolume && isChangedSpeed) {
-                // 如果音量和速度都改变了，使用只改变速度后的文件（速度为1的文件）
-                inputFile = onlyChangedSpeed;
-            } else if (isChangedSpeed) {
-                // 如果只改变了速度，使用改变速度后的文件
-                inputFile = ChangedSpeedFileName;
-            } else {
-                // 如果都没有改变，使用原始文件
-                inputFile = originalVideo;
-            } 
-
+            currentVolume = volume;
+            
             fetch('/adjust_volume', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    input_file: inputFile,
+                    input_file: originalVideo,
                     volume: volume,
+                    speed: currentSpeed, // 同時應用當前速度
                 }),
             })
             .then(response => {
@@ -354,47 +340,34 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .then(data => {
                 if (data.output_file) {
-                    // 更新预览视频为新的调音视频
-                    previewVideo.src = `/preview/${data.output_file}`;
-                    previewVideo.load();
-                    previewVideo.play();
-                    
-                    // 更新下载按钮链接
-                    downloadButton.onclick = () => {
-                        window.location.href = `/download/${data.output_file}`;
-                    };
-                    downloadButton.style.display = 'block';
-                    
-                    
-                    if(isChangedVolume==0) onlyChangedVolume = data.output_file;
-                    isChangedVolume = true;
-                    ChangedVolumeFileName = data.output_file;
+                    processedVideo = data.output_file;
+                    updatePreviewAndDownload(processedVideo);
                 } else {
-                    throw new Error(data.error || '调整视频音量失败');
+                    throw new Error(data.error || 'Failed to adjust video volume');
                 }
             })
             .catch(error => {
-                console.error('调整视频音量时发生错误:', error);
-                showErrorModal('调整视频音量时发生错误: ' + error.message);
+                console.error('An error occurred while adjusting video volume:', error);
+                showErrorModal('An error occurred while adjusting video volume: ' + error.message);
             });
         }
 
         // 調整播放速度功能
         function adjustSpeed() {
             if (!originalVideo) {
-                showErrorModal('請先上傳影片，然後再調整速度。');
+                showErrorModal('Please upload your video first and then adjust the speed.');
                 return;
             }
 
             const speedOptions = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
             const speedOptionsContainer = document.getElementById('speed-options');
             
-            // 切换速度选项的显示状态
+            // 切換速度選項的顯示狀態
             speedOptionsContainer.style.display = speedOptionsContainer.style.display === 'none' ? 'block' : 'none';
 
-            // 如果是显示状态，创建速度选项按钮
+            // 如果是顯示狀態，創建速度選項按鈕
             if (speedOptionsContainer.style.display === 'block') {
-                speedOptionsContainer.innerHTML = ''; // 清空现有的选项
+                speedOptionsContainer.innerHTML = ''; // 清空現有的選項
                 speedOptions.forEach(speed => {
                     const speedButton = document.createElement('button');
                     speedButton.textContent = `${speed}x`;
@@ -411,112 +384,93 @@ document.addEventListener('DOMContentLoaded', () => {
         // 選擇播放速度
         function selectSpeed(speed) {
             if (!originalVideo) {
-                showErrorModal('請先上傳影片，然後再調整速度。');
+                showErrorModal('Please upload your video first and then adjust the speed.');
                 return;
             }
 
             currentSpeed = speed;
+            updateSpeedButtons();
+            adjustVideoSpeed(speed);
+        }
+        // 更新速度按鈕的選中狀態
+        function updateSpeedButtons() {
             const speedButtons = document.querySelectorAll('.speed-option');
             speedButtons.forEach(button => {
-                if (parseFloat(button.textContent) === speed) {
+                const buttonSpeed = parseFloat(button.textContent);
+                if (buttonSpeed === currentSpeed) {
                     button.classList.add('selected');
                 } else {
                     button.classList.remove('selected');
                 }
             });
-
-            if (previewVideo.src) {
-                previewVideo.playbackRate = speed;
-                adjustVideoSpeed(speed);
-            }
         }
-
-        // 調整視頻播放速度並處理
+        // 修改 adjustVideoSpeed 函數
         function adjustVideoSpeed(speed) {
-            if (!originalVideo) {
-                showErrorModal('請先上傳影片，然後再調整速度！');
-                return;
-            }
+            currentSpeed = speed;
 
-            let inputFile;
-            if (isChangedVolume && isChangedSpeed) {
-                // 如果音量和速度都改变了，使用只改变音量后的文件（速度为1的文件）
-                inputFile = onlyChangedVolume;
-            } else if (isChangedVolume) {
-                // 如果只改变了音量，使用改变音量后的文件
-                inputFile = ChangedVolumeFileName;
-            } else {
-                // 如果没有改变音量，使用原始文件
-                inputFile = originalVideo;
-            } 
-            
             fetch('/adjust_speed', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    input_file: inputFile,
+                    input_file: originalVideo,
                     speed: speed,
+                    volume: currentVolume, 
                 }),
             })
             .then(response => {
                 if (!response.ok) {
-                    if (response.status === 404) {
-                        throw new Error('调整速度的接口未找到，请确保服务器正在运行并且路由正确配置。');
-                    }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 return response.json();
             })
             .then(data => {
                 if (data.output_file) {
-                    // 更新预览视频为新的调速视频
-                    previewVideo.src = `/preview/${data.output_file}`;
-                    previewVideo.load();
-                    previewVideo.play();
-                    
-                    // 更新下载按钮链接
-                    downloadButton.onclick = () => {
-                        window.location.href = `/download/${data.output_file}`;
-                    };
-                    downloadButton.style.display = 'block';
-                    
-
-                    if(isChangedSpeed==0) onlyChangedSpeed = data.output_file;
-                   isChangedSpeed = true;
-                    ChangedSpeedFileName = data.output_file;
-
+                    processedVideo = data.output_file;
+                    updatePreviewAndDownload(processedVideo);
                 } else {
-                    throw new Error(data.error || '调整视频速度失败');
+                    throw new Error(data.error || 'Failed to adjust video speed');
                 }
             })
             .catch(error => {
-                console.error('调整视频速度时发生错误:', error);
-                showErrorModal('调整视频速度时发生错误: ' + error.message);
+                console.error('Failed to adjust video speed:', error);
+                showErrorModal('Failed to adjust video speed: ' + error.message);
             });
         }
 
+        // 修改 updatePreviewAndDownload 函數
+        function updatePreviewAndDownload(videoFile) {
+            previewVideoUrl = `/preview/${videoFile}`;
+            previewVideo.src = previewVideoUrl;
+            previewVideo.load();
+            previewVideo.play();
+            
+            downloadButton.onclick = () => {
+                window.location.href = `/download/${videoFile}`;
+            };
+            downloadButton.style.display = 'block';
+        }
 
         // 添加字幕功能
         function addSubtitle() {
             if (!originalVideo) {
-                showErrorModal('請先上傳影片，然後再添加字幕。');
+                showErrorModal('Please upload your video first and then add subtitles.');
                 return;
             }
 
             const subtitleOptionsContainer = document.getElementById('subtitle-options');
         
-            // 切换字幕选项的显示状态
+            // 切換字幕選項的顯示狀態
             subtitleOptionsContainer.style.display = subtitleOptionsContainer.style.display === 'none' ? 'block' : 'none';
 
-            // 如果是显示状态，创建字幕输入表单
+            // 如果是顯示狀態，創建字幕輸入表單
             if (subtitleOptionsContainer.style.display === 'block') {
                 subtitleOptionsContainer.innerHTML = `
-                    <input type="text" id="start-time" placeholder="開始時間 (秒)" class="time-input">
-                    <input type="text" id="end-time" placeholder="結束時間 (秒)" class="time-input">
-                    <textarea id="subtitle-text" placeholder="輸入字幕內容" class="subtitle-input"></textarea>
-                    <button id="submit-subtitle">添加字幕</button>
+                    <input type="text" id="start-time" placeholder="Start Time (sec)" class="time-input">
+                    <input type="text" id="end-time" placeholder="End Time (sec)" class="time-input">
+                    <textarea id="subtitle-text" placeholder="Enter subtitle text" class="subtitle-input"></textarea>
+                    <button id="submit-subtitle">Add Subtitle</button>
                     <div id="subtitle-list"></div>
                 `;
 
@@ -563,7 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('start-time').value = subtitle.startTime;
             document.getElementById('end-time').value = subtitle.endTime;
             document.getElementById('subtitle-text').value = subtitle.text;
-            document.getElementById('submit-subtitle').textContent = '更新字幕';
+            document.getElementById('submit-subtitle').textContent = 'Update Subtitle';
             document.getElementById('submit-subtitle').onclick = () => {
                 const startTime = document.getElementById('start-time').value;
                 const endTime = document.getElementById('end-time').value;
@@ -584,7 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
             applySubtitlesToVideo();
             resetSubtitleForm();
             // 重置提交按鈕
-            document.getElementById('submit-subtitle').textContent = '添加字幕';
+            document.getElementById('submit-subtitle').textContent = 'Add Subtitle';
         }
 
         function updateSubtitleList() {
@@ -595,8 +549,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 subtitleItem.className = 'subtitle-item';
                 subtitleItem.innerHTML = `
                     <span>${formatTime(subtitle.startTime)} - ${formatTime(subtitle.endTime)}: ${subtitle.text}</span>
-                    <button onclick="editSubtitle(${index})">编辑</button>
-                    <button onclick="deleteSubtitle(${index})">删除</button>
+                    <button onclick="editSubtitle(${index})">Edit</button>
+                    <button onclick="deleteSubtitle(${index})">Delete</button>
                 `;
                 subtitleList.appendChild(subtitleItem);
             });
@@ -647,12 +601,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     currentSubtitleFile = data.output_file;
                 } else {
-                    throw new Error(data.error || '應用字幕失敗');
+                    throw new Error(data.error || 'Failed to apply subtitles');
                 }
             })
             .catch(error => {
-                console.error('應用字幕時發生錯誤:', error);
-                showErrorModal('應用字幕時發生錯誤: ' + error.message);
+                console.error('Failed to apply subtitles:', error);
+                showErrorModal('Failed to apply subtitles: ' + error.message);
             })
             .finally(() => {
                 // 隱藏加載指示器
@@ -668,7 +622,7 @@ document.addEventListener('DOMContentLoaded', () => {
             button.addEventListener('click', handleSidebarButtonClick);
         });
 
-        // 创建音量选项容器
+        // 創建音量選項容器
         const sidebarList = document.querySelector('.sidebar ul');
         const volumeOptionsContainer = document.createElement('div');
         volumeOptionsContainer.id = 'volume-options';
@@ -676,12 +630,12 @@ document.addEventListener('DOMContentLoaded', () => {
         volumeOptionsContainer.style.display = 'none';
         sidebarList.insertBefore(volumeOptionsContainer, sidebarList.children[1]);
 
-        // 创建字幕选项容器
+        // 創建字幕選項容器
         const subtitleOptionsContainer = document.createElement('div');
         subtitleOptionsContainer.id = 'subtitle-options';
         subtitleOptionsContainer.className = 'option-container';
         subtitleOptionsContainer.style.display = 'none';
-        sidebarList.insertBefore(subtitleOptionsContainer, sidebarList.children[2]);
+        sidebarList.insertBefore(subtitleOptionsContainer, sidebarList.children[4]);
 
         // 添加這個新函數來顯示錯誤彈窗
         function showErrorModal(errorMessage) {
@@ -689,9 +643,9 @@ document.addEventListener('DOMContentLoaded', () => {
             modal.className = 'error-modal';
             modal.innerHTML = `
                 <div class="error-modal-content">
-                    <h2>錯誤</h2>
+                    <h2>Error</h2>
                     <p>${errorMessage}</p>
-                    <button onclick="this.parentElement.parentElement.remove()">關閉</button>
+                    <button onclick="this.parentElement.parentElement.remove()">Close</button>
                 </div>
             `;
             document.body.appendChild(modal);
@@ -703,7 +657,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     } catch (error) {
-        showErrorModal('初始化時發生錯誤: ' + error.message);
+        showErrorModal('Initialization error: ' + error.message);
     }
     
 

@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, jsonify, send_file, Response,
 from werkzeug.utils import secure_filename
 from app import process_video
 import threading
-from app.adjust_video import adjust_video_speed, adjust_video_volume
+from app.adjust_video import adjust_video_speed, adjust_video_volume, adjust_video
 from flask import session
 from app.subtitle import add_subtitle, apply_subtitles , extract_subtitles
 
@@ -114,9 +114,9 @@ def preview_highlight_video(filename):
 
 @app.route('/adjust_speed', methods=['POST'])
 def adjust_speed():
-    data = request.json
-    input_file = data.get('input_file')
-    speed = float(data.get('speed'))
+    input_file = request.json['input_file']
+    volume = request.json['volume']
+    speed = request.json['speed']
 
     if not input_file or not speed:
         return jsonify({'error': '缺少必要参数'}), 400
@@ -135,7 +135,7 @@ def adjust_speed():
     output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_file)
 
     try:
-        success = adjust_video_speed(input_path, output_path, speed)
+        success = adjust_video(input_path, output_path, speed, volume)
         if success:
             return jsonify({'message': '视频速度调整成功', 'output_file': output_file}), 200
         else:
@@ -173,9 +173,9 @@ def save_file_info():
 
 @app.route('/adjust_volume', methods=['POST'])
 def adjust_volume():
-    data = request.json
-    input_file = data.get('input_file')
-    volume = float(data.get('volume'))
+    input_file = request.json['input_file']
+    speed = request.json['speed']
+    volume = request.json['volume']
 
     if not input_file or not volume:
         return jsonify({'error': '缺少必要参数'}), 400
@@ -190,7 +190,7 @@ def adjust_volume():
     output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_file)
 
     try:
-        success = adjust_video_volume(input_path, output_path, volume)
+        success = adjust_video(input_path, output_path, speed, volume)
         if success:
             return jsonify({'message': '视频音量调整成功', 'output_file': output_file}), 200
         else:
